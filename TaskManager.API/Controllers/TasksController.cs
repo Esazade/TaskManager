@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using TaskManager.API.DTOs;
 using TaskManager.Application.Interfaces;
 using TaskManager.Domain.Entities;
 
@@ -16,7 +17,7 @@ public class TasksController : ControllerBase
         _taskRepository = taskRepository;
     }
 
-    
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TaskItem>>> GetTasks()
     {
@@ -24,7 +25,7 @@ public class TasksController : ControllerBase
         return Ok(tasks);
     }
 
-    
+
     [HttpGet("{id}")]
     public async Task<ActionResult<TaskItem>> GetTask(int id)
     {
@@ -35,26 +36,37 @@ public class TasksController : ControllerBase
         return Ok(task);
     }
 
-   
-    [HttpPost]
-    public async Task<ActionResult<TaskItem>> CreateTask(TaskItem task)
+     [HttpPost]
+    public async Task<ActionResult<TaskItem>> CreateTask(TaskCreateDto taskDto)
     {
+        var task = new TaskItem
+        {
+            Title = taskDto.Title,
+            Description = taskDto.Description,
+            IsCompleted = taskDto.IsCompleted,
+            DueDate = taskDto.DueDate
+        };
+
         await _taskRepository.AddAsync(task);
         return CreatedAtAction(nameof(GetTask), new { id = task.Id }, task);
     }
 
-    
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateTask(int id, TaskItem task)
+    public async Task<IActionResult> UpdateTask(int id, TaskUpdateDto taskDto)
     {
-        if (id != task.Id)
-            return BadRequest();
+        var task = await _taskRepository.GetByIdAsync(id);
+        if (task == null)
+            return NotFound();
+
+        task.Title = taskDto.Title;
+        task.Description = taskDto.Description;
+        task.IsCompleted = taskDto.IsCompleted;
+        task.DueDate = taskDto.DueDate;
 
         await _taskRepository.UpdateAsync(task);
         return NoContent();
     }
 
-    
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteTask(int id)
     {
